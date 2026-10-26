@@ -127,12 +127,13 @@ if st.button("🚀 Train & Evaluate Models (Includes Hyperparameter Tuning)"):
         st.subheader("Baseline Model Performance")
         st.dataframe(pd.DataFrame(results).T)
 
-        # GridSearchCV Tuning
+        # GridSearchCV Tuning:
         param_grid = {
             "model__n_estimators":,
             "model__learning_rate": [0.05, 0.1],
             "model__max_depth":,
         }
+
 
         best_pipe = Pipeline([("prep", preprocessor),
                               ("model", GradientBoostingRegressor(random_state=42))])
