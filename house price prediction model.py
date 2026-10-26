@@ -15,8 +15,8 @@ from sklearn.metrics import mean_squared_error, r2_score
 
 # --- App Title & Sidebar Layout ---
 st.set_page_config(page_title="House Price Prediction Dashboard", layout="wide")
-st.title("🏡 House Price Prediction Dashboard")
-st.markdown("This dashboard walks through Data Collection, EDA, Pipeline Preprocessing, and Model Training.")
+st.title("🏡 Interactive House Price Prediction Dashboard")
+st.markdown("Explore data configurations, trigger grid searches, or input custom house specifications to test model predictions live.")
 
 # --- Phase 2: Data Collection ---
 st.header("📦 Phase 2 — Data Collection")
@@ -27,6 +27,7 @@ def load_data():
     return housing.frame
 
 df = load_data().copy()
+df["SalePrice"] = df["SalePrice"].astype(float)
 
 col1, col2 = st.columns(2)
 with col1:
@@ -35,54 +36,66 @@ with col2:
     st.subheader("Data Types Count")
     st.write(df.dtypes.value_counts())
 
-st.subheader("Dataset Preview (First 5 Rows)")
-st.dataframe(df.head())
+# Interactive Row Filter Preview
+max_rows = st.slider("Select number of rows to preview:", min_value=5, max_value=100, value=5, step=5)
+st.dataframe(df.head(max_rows))
+
+# --- Interactive Sidebar for Custom Predictions & Training Controls ---
+st.sidebar.header("⚙️ Interactive Controls")
+
+st.sidebar.subheader("1. Test Train Split Config")
+test_size_ratio = st.sidebar.slider("Test Set Size Ratio", min_value=0.1, max_value=0.4, value=0.2, step=0.05)
+
+st.sidebar.subheader("2. Predict a Custom House Price")
+user_grlivarea = st.sidebar.slider("Above Ground Living Area (GrLivArea sqft)", int(df["GrLivArea"].min()), int(df["GrLivArea"].max()), int(df["GrLivArea"].median()))
+user_overallqual = st.sidebar.slider("Overall Quality Rating (1-10)", 1, 10, int(df["OverallQual"].median()))
+user_garagecars = st.sidebar.slider("Size of Garage (Car Capacity)", int(df["GarageCars"].min()), int(df["GarageCars"].max()), int(df["GarageCars"].median()))
 
 # --- Phase 3: Exploratory Data Analysis (EDA) ---
 st.header("📊 Phase 3 — Explanatory Data Analysis (EDA)")
 
-df["SalePrice"] = df["SalePrice"].astype(float)
+# Interactive plot selectbox
+eda_option = st.selectbox("Choose analysis feature visualization:", ["Target Price Distribution", "Key Feature Scatterplots"])
 
-# 1. Target Distribution
-st.subheader("1. Target Price Distribution")
-fig1, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
-sns.histplot(df["SalePrice"], kde=True, ax=ax1)
-ax1.set_title("Sale price distribution (skewed)")
-sns.histplot(np.log1p(df["SalePrice"]), kde=True, color="teal", ax=ax2)
-ax2.set_title("Log-transformed (normal)")
-plt.tight_layout()
-st.pyplot(fig1)
+if eda_option == "Target Price Distribution":
+    st.subheader("Target Price Distribution")
+    fig1, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+    sns.histplot(df["SalePrice"], kde=True, ax=ax1)
+    ax1.set_title("Sale price distribution (skewed)")
+    sns.histplot(np.log1p(df["SalePrice"]), kde=True, color="teal", ax=ax2)
+    ax2.set_title("Log-transformed (normal)")
+    plt.tight_layout()
+    st.pyplot(fig1)
+else:
+    st.subheader("Key Features vs. Sale Price Scatterplots")
+    fig2, axes = plt.subplots(1, 3, figsize=(14, 4))
+    for ax, col in zip(axes, ["GrLivArea", "OverallQual", "GarageCars"]):
+        ax.scatter(df[col], df["SalePrice"], alpha=0.4, s=10)
+        ax.set_xlabel(col)
+        ax.set_ylabel("SalePrice")
+    plt.tight_layout()
+    st.pyplot(fig2)
 
-# 2. Missing Values & Correlations
-col3, col4 = st.columns(2)
-with col3:
-    st.subheader("2. Missing Values (Top 20)")
-    missing = df.isnull().sum()
-    missing = missing[missing > 0].sort_values(ascending=False)
-    st.dataframe(missing.head(20))
-
-with col4:
-    st.subheader("3. Correlation with SalePrice (Top 10)")
-    num_cols = df.select_dtypes(include=np.number).columns
-    corr = df[num_cols].corr()["SalePrice"].sort_values(ascending=False)
-    st.dataframe(corr.head(10))
-
-# 4. Key Scatterplots
-st.subheader("4. Key Features vs. Sale Price Scatterplots")
-fig2, axes = plt.subplots(1, 3, figsize=(14, 4))
-for ax, col in zip(axes, ["GrLivArea", "OverallQual", "GarageCars"]):
-    ax.scatter(df[col], df["SalePrice"], alpha=0.4, s=10)
-    ax.set_xlabel(col)
-    ax.set_ylabel("SalePrice")
-plt.tight_layout()
-st.pyplot(fig2)
+# Missing Values & Correlations in an expander container to clean up space
+with st.expander("🔍 View Missing Values and Feature Correlations Matrix"):
+    col3, col4 = st.columns(2)
+    with col3:
+        st.subheader("Missing Values (Top 20)")
+        missing = df.isnull().sum()
+        missing = missing[missing > 0].sort_values(ascending=False)
+        st.dataframe(missing.head(20))
+    with col4:
+        st.subheader("Correlation with SalePrice (Top 10)")
+        num_cols = df.select_dtypes(include=np.number).columns
+        corr = df[num_cols].corr()["SalePrice"].sort_values(ascending=False)
+        st.dataframe(corr.head(10))
 
 # --- Phase 4: Preprocessing Pipeline ---
-# Log-transform target
 y = np.log1p(df['SalePrice'])
 X = df.drop(columns=['SalePrice'])
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Dynamic test split connected to slider variable
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size_ratio, random_state=42)
 
 nums_cols = X_train.select_dtypes(include=np.number).columns.tolist()
 cat_cols = X_train.select_dtypes(include="object").columns.tolist()
@@ -105,10 +118,12 @@ preprocessor = ColumnTransformer([
 # --- Phase 5: Model Building and Evaluation ---
 st.header("🤖 Phase 5 — Model Building & Evaluation")
 
-# Optimization: Only run training once using session state or a button
+# Store final pipeline in session state so it stays available after training
+if "trained_model" not in st.session_state:
+    st.session_state.trained_model = None
+
 if st.button("🚀 Train & Evaluate Models (Includes Hyperparameter Tuning)"):
     with st.spinner("Training models and running GridSearchCV... please wait..."):
-        
         models = {
             "Ridge": Ridge(alpha=10),
             "Random Forest": RandomForestRegressor(n_estimators=200, random_state=42),
@@ -127,33 +142,25 @@ if st.button("🚀 Train & Evaluate Models (Includes Hyperparameter Tuning)"):
         st.subheader("Baseline Model Performance")
         st.dataframe(pd.DataFrame(results).T)
 
-        # GridSearchCV Tuning:
+        # GridSearchCV Tuning
         estimators_list = [200, 300]
         depth_list = [3, 5]
-
         param_grid = {
             "model__n_estimators": estimators_list,
             "model__learning_rate": [0.05, 0.1],
             "model__max_depth": depth_list,
         }
 
-
-
-
-        best_pipe = Pipeline([("prep", preprocessor),
-                              ("model", GradientBoostingRegressor(random_state=42))])
-
+        best_pipe = Pipeline([("prep", preprocessor), ("model", GradientBoostingRegressor(random_state=42))])
         gs = GridSearchCV(best_pipe, param_grid, cv=5, scoring='neg_root_mean_squared_error', n_jobs=-1)
         gs.fit(X_train, y_train)
         
+        st.session_state.trained_model = gs.best_estimator_
         st.success("Tuning Complete!")
         st.write("**Best Parameters:**", gs.best_params_)
 
-        # Final predictions evaluation
-        final_model = gs.best_estimator_
-        final_preds = final_model.predict(X_test)
-
-        # Visualizing results side-by-side
+        # Metrics display evaluation
+        final_preds = st.session_state.trained_model.predict(X_test)
         col5, col6 = st.columns(2)
         
         with col5:
@@ -167,8 +174,8 @@ if st.button("🚀 Train & Evaluate Models (Includes Hyperparameter Tuning)"):
 
         with col6:
             st.subheader("Top 15 Feature Importances")
-            gb_model = final_model.named_steps["model"]
-            all_cols = final_model.named_steps["prep"].get_feature_names_out()
+            gb_model = st.session_state.trained_model.named_steps["model"]
+            all_cols = st.session_state.trained_model.named_steps["prep"].get_feature_names_out()
             importances = pd.Series(gb_model.feature_importances_, index=all_cols)
             top15 = importances.nlargest(15)
             
@@ -176,11 +183,35 @@ if st.button("🚀 Train & Evaluate Models (Includes Hyperparameter Tuning)"):
             top15.sort_values().plot(kind="barh", color="steelblue", ax=ax_imp)
             st.pyplot(fig4)
 
-        # Reverse Log Conversions
         pred_prices = np.expm1(final_preds)
         actual_prices = np.expm1(y_test.values)
-        
         st.subheader("Final Valuation Summaries ($)")
         st.info(f"💡 **Mean Predicted House Price:** ${pred_prices.mean():,.0f}  |  **Mean Actual House Price:** ${actual_prices.mean():,.0f}")
+
+# --- Real-Time Custom Input Prediction Block ---
+if st.session_state.trained_model is not None:
+    st.header("🔮 Live Custom House Price Calculator")
+    st.markdown("Change the sliders in the left sidebar to watch this machine learning model adjust its valuation instantly.")
+    
+    # Construct a synthetic row using the median values of the dataset
+    custom_sample = X_test.iloc[[0]].copy()
+    for col in custom_sample.columns:
+        if col in X_train.select_dtypes(include=np.number).columns:
+            custom_sample[col] = X_train[col].median()
+        else:
+            custom_sample[col] = X_train[col].mode()[0]
+            
+    # Inject user input settings from sidebar
+    custom_sample["GrLivArea"] = user_grlivarea
+    custom_sample["OverallQual"] = user_overallqual
+    custom_sample["GarageCars"] = user_garagecars
+    
+    # Compute output
+    predicted_log = st.session_state.trained_model.predict(custom_sample)
+    calculated_dollar_price = np.expm1(predicted_log)[0]
+    
+    # Render value output card
+    st.metric(label="Calculated Market Value Estimate ($)", value=f"${calculated_dollar_price:,.2f}")
 else:
-    st.info("Click the 'Train & Evaluate Models' button above to run the machine learning workloads.")
+    if st.session_state.trained_model is None:
+        st.info("💡 Pro-Tip: Once you click the 'Train & Evaluate Models' button above, a live interactive calculator tool will unlock here so you can test individual home parameters manually!")
