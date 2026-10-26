@@ -3,10 +3,6 @@
 
 # In[1]:
 
-
-pip install pandas numpy scikit-learn matplotlib seaborn
-
-
 # ### Phase 2 — Data collection
 
 # In[2]:
