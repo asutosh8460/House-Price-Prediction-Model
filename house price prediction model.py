@@ -128,11 +128,15 @@ if st.button("🚀 Train & Evaluate Models (Includes Hyperparameter Tuning)"):
         st.dataframe(pd.DataFrame(results).T)
 
         # GridSearchCV Tuning:
+        estimators_list = [200, 300]
+        depth_list = [3, 5]
+
         param_grid = {
-            "model__n_estimators":,
+            "model__n_estimators": estimators_list,
             "model__learning_rate": [0.05, 0.1],
-            "model__max_depth":,
+            "model__max_depth": depth_list,
         }
+
 
 
 
