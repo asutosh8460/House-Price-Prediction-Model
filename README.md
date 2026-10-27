@@ -11,6 +11,12 @@
 
 </div>
 
+<div align="center">
+
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Open_App-FF4B4B?style=for-the-badge)](https://house-price-prediction-model-lvpn7gdtfqsc3ykuvfdjuh.streamlit.app/)
+
+</div>
+
 ---
 
 ## 📌 Overview
@@ -18,6 +24,12 @@
 Buying or selling a home starts with one question: what is it worth? This project answers it with machine learning. It is trained on the **Ames Housing dataset** and predicts a house's sale price from its features.
 
 The project covers the full workflow: exploratory data analysis, feature engineering, model comparison, tuning, and deployment as a web app where anyone can enter a house's details and get a prediction instantly.
+
+## 🎬 Live Demo
+
+👉 **[Try the app here](https://house-price-prediction-model-lvpn7gdtfqsc3ykuvfdjuh.streamlit.app/)**
+
+> The app may take a few seconds to wake up if it hasn't been used recently.
 
 ## ✨ Features
 
